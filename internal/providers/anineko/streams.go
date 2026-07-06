@@ -31,18 +31,19 @@ func getEpisodeStreamsForMode(slug string, config providers.PlaybackConfig, epNo
 		return nil, nil, fmt.Errorf("no %s streams found for episode %d", mode, epNo)
 	}
 
-	bibiembURLs, vibeplayerURLs, _ := partitionByHost(embedURLs)
-
-	for _, embedURL := range bibiembURLs {
-		stream, err := resolveBibiemb(embedURL)
-		if err != nil {
+	for _, embedURL := range embedURLs {
+		var (
+			stream resolvedStream
+			err    error
+		)
+		switch resolveEmbedHost(embedURL) {
+		case "bibiemb":
+			stream, err = resolveBibiemb(embedURL)
+		case "vibeplayer":
+			stream, err = resolveVibeplayer(embedURL)
+		default:
 			continue
 		}
-		return singleStreamResult(stream)
-	}
-
-	for _, embedURL := range vibeplayerURLs {
-		stream, err := resolveVibeplayer(embedURL)
 		if err != nil {
 			continue
 		}

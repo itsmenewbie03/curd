@@ -12,7 +12,7 @@ type SelectionOption struct {
 // PlaybackConfig carries playback preferences passed into providers.
 type PlaybackConfig struct {
 	SubOrDub string
-	// SubStyle controls anineko subtitle stream tabs: ask, soft, or hard.
+	// SubStyle controls subtitle delivery for sub-mode playback: ask, soft, or hard.
 	SubStyle string
 }
 

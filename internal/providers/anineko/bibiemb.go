@@ -45,7 +45,7 @@ func resolveBibiemb(embedURL string) (resolvedStream, error) {
 	return resolvedStream{
 		URL:      variantURL,
 		Referrer: embedURL,
-		Subtitle: subtitleFromEmbedURL(embedURL),
+		Subtitle: resolveSubtitle(embedURL, html),
 	}, nil
 }
 

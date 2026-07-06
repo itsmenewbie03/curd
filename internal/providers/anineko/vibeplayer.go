@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var vibeplayerMasterRE = regexp.MustCompile(`const src = "(https://vibeplayer\.site/public/stream/[^"]+/master\.m3u8)"`)
+var vibeplayerMasterRE = regexp.MustCompile(`const src = "(https?://[^"]+/public/stream/[^"]+/master\.m3u8)"`)
 
 func resolveVibeplayer(embedURL string) (resolvedStream, error) {
 	embedURL = strings.TrimSpace(embedURL)
@@ -32,6 +32,6 @@ func resolveVibeplayer(embedURL string) (resolvedStream, error) {
 	return resolvedStream{
 		URL:      proxyURL,
 		Referrer: embedURL,
-		Subtitle: subtitleFromEmbedURL(embedURL),
+		Subtitle: resolveSubtitle(embedURL, html),
 	}, nil
 }

@@ -327,6 +327,13 @@ func StartVideo(link string, args []string, title string, anime *Anime) (string,
 		// Wait a brief moment for the file to load
 		time.Sleep(100 * time.Millisecond)
 
+		if subtitleURL := strings.TrimSpace(anime.Ep.SubtitleURL); subtitleURL != "" && !hasMPVSubtitleArg(args) {
+			_, subErr := MPVSendCommand(mpvSocketPath, []interface{}{"sub-add", subtitleURL, "select"})
+			if subErr != nil {
+				Log(fmt.Sprintf("Failed to load subtitle track: %v", subErr))
+			}
+		}
+
 		// Update the window title
 		titleCommand := []interface{}{"set_property", "force-media-title", title}
 		_, err = MPVSendCommand(mpvSocketPath, titleCommand)

@@ -18,10 +18,6 @@ func getEpisodeStreamsForMode(malIDStr string, config providers.PlaybackConfig, 
 	}
 
 	mode := providers.NormalizeTranslationType(config.SubOrDub)
-	wantStatus := "HardSub"
-	if mode == "dub" {
-		wantStatus = "Dub"
-	}
 
 	var embeds []embedItem
 	url := fmt.Sprintf("%s/episode-embeds/%d/%d", baseURL, malID, epNo)
@@ -32,6 +28,11 @@ func getEpisodeStreamsForMode(malIDStr string, config providers.PlaybackConfig, 
 		return nil, nil, fmt.Errorf("no streams found for episode %d", epNo)
 	}
 
+	wantStatus := "HardSub"
+	if mode == "dub" {
+		wantStatus = "Dub"
+	}
+
 	for _, item := range embeds {
 		if !strings.EqualFold(strings.TrimSpace(item.Status), wantStatus) {
 			continue
@@ -40,9 +41,17 @@ func getEpisodeStreamsForMode(malIDStr string, config providers.PlaybackConfig, 
 		if streamURL == "" {
 			continue
 		}
+
+		subtitle := ""
+		if mode == "sub" {
+			// Senshi labels streams HardSub even when subtitles are external.
+			subtitle = resolveSenshiSubtitle(item)
+		}
+
 		hints := map[string]providers.StreamPlaybackHint{
 			streamURL: {
 				Referrer: baseURL + "/",
+				Subtitle: subtitle,
 			},
 		}
 		return []string{streamURL}, hints, nil

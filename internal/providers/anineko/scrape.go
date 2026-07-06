@@ -7,8 +7,10 @@ import (
 )
 
 var (
-	dataVideoRE = regexp.MustCompile(`data-video="([^"]+)"`)
-	subtitleRE  = regexp.MustCompile(`[?&](?:sub|caption_1|c1_file)=([^&"]+)`)
+	dataVideoRE      = regexp.MustCompile(`data-video="([^"]+)"`)
+	subtitleRE       = regexp.MustCompile(`[?&](?:sub|caption_1|c1_file)=([^&"]+)`)
+	embedSubtitleRE  = regexp.MustCompile(`const subtitle = "([^"]+)"`)
+	embedTrackFileRE = regexp.MustCompile(`file:\s*"([^"]+\.(?:vtt|ass|srt))"`)
 )
 
 func extractLangEmbedURLs(html string) map[string][]string {
@@ -48,19 +50,26 @@ func extractLangEmbedURLs(html string) map[string][]string {
 	return groups
 }
 
-func partitionByHost(embedURLs []string) (bibiemb, vibeplayer, other []string) {
-	for _, embedURL := range embedURLs {
-		host := strings.ToLower(hostFromURL(embedURL))
-		switch {
-		case strings.Contains(host, "bibiemb."):
-			bibiemb = append(bibiemb, embedURL)
-		case strings.Contains(host, "vibeplayer."):
-			vibeplayer = append(vibeplayer, embedURL)
-		default:
-			other = append(other, embedURL)
-		}
+func isVibeplayerHost(host string) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if host == "" {
+		return false
 	}
-	return bibiemb, vibeplayer, other
+	if strings.Contains(host, "vibeplayer.") || strings.Contains(host, "vivibebe.") {
+		return true
+	}
+	return strings.HasPrefix(host, "vibe") && strings.Contains(host, "be.")
+}
+
+func resolveEmbedHost(embedURL string) string {
+	switch {
+	case strings.Contains(strings.ToLower(hostFromURL(embedURL)), "bibiemb."):
+		return "bibiemb"
+	case isVibeplayerHost(hostFromURL(embedURL)):
+		return "vibeplayer"
+	default:
+		return ""
+	}
 }
 
 func subtitleFromEmbedURL(embedURL string) string {
@@ -87,6 +96,29 @@ func subtitleFromEmbedURL(embedURL string) string {
 		return decoded
 	}
 	return match[1]
+}
+
+func subtitleFromEmbedHTML(html string) string {
+	html = strings.TrimSpace(html)
+	if html == "" {
+		return ""
+	}
+	if match := embedSubtitleRE.FindStringSubmatch(html); len(match) >= 2 {
+		if subtitle := strings.TrimSpace(match[1]); subtitle != "" {
+			return subtitle
+		}
+	}
+	if match := embedTrackFileRE.FindStringSubmatch(html); len(match) >= 2 {
+		return strings.TrimSpace(match[1])
+	}
+	return ""
+}
+
+func resolveSubtitle(embedURL, html string) string {
+	if subtitle := subtitleFromEmbedURL(embedURL); subtitle != "" {
+		return subtitle
+	}
+	return subtitleFromEmbedHTML(html)
 }
 
 func hostFromURL(rawURL string) string {

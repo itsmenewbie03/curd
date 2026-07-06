@@ -40,8 +40,9 @@ type episodeItem struct {
 }
 
 type embedItem struct {
-	URL      string  `json:"url"`
-	Server2  *string `json:"server2"`
-	ServerFM *string `json:"serverFM"`
-	Status   string  `json:"status"`
+	URL            string  `json:"url"`
+	Server2        *string `json:"server2"`
+	ServerFM       *string `json:"serverFM"`
+	Status         string  `json:"status"`
+	MaskedBaseURL  string  `json:"masked_base_url"`
 }

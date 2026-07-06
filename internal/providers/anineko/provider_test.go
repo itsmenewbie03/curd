@@ -117,6 +117,48 @@ func TestExtractLangEmbedURLs(t *testing.T) {
 	}
 }
 
+func TestSubtitleFromEmbedHTML(t *testing.T) {
+	html := `const subtitle = "https://cdn.example/page.vtt";`
+	if got := subtitleFromEmbedHTML(html); got != "https://cdn.example/page.vtt" {
+		t.Fatalf("unexpected subtitle %q", got)
+	}
+}
+
+func TestResolveSubtitlePrefersEmbedURL(t *testing.T) {
+	embedURL := "https://vibeplayer.site/soft?sub=https://cdn.example/url.vtt"
+	html := `const subtitle = "https://cdn.example/page.vtt";`
+	if got := resolveSubtitle(embedURL, html); got != "https://cdn.example/url.vtt" {
+		t.Fatalf("unexpected subtitle %q", got)
+	}
+}
+
+func TestResolveEmbedHostDetectsVivibebe(t *testing.T) {
+	if got := resolveEmbedHost("https://vivibebe.site/e6693c8de8202fbe"); got != "vibeplayer" {
+		t.Fatalf("expected vibeplayer host, got %q", got)
+	}
+}
+
+func TestChooseSubStyleHardPromptsForSoftFallback(t *testing.T) {
+	resetSubStyleForTest()
+	groups := map[string][]string{
+		"sub": {"https://vibeplayer.site/soft?sub=https://cdn.example/sub.vtt"},
+	}
+
+	previousPrompt := curdhost.PromptSelect
+	curdhost.PromptSelect = func([]curdhost.PromptOption) (curdhost.PromptOption, error) {
+		return curdhost.PromptOption{Key: "soft", Label: "Use soft subs"}, nil
+	}
+	t.Cleanup(func() {
+		curdhost.PromptSelect = previousPrompt
+		resetSubStyleForTest()
+	})
+
+	style, err := chooseSubStyle(groups, "hard")
+	if err != nil || style != "soft" {
+		t.Fatalf("expected soft after prompt, got style=%q err=%v", style, err)
+	}
+}
+
 func TestChooseSubStyleRespectsPreference(t *testing.T) {
 	groups := map[string][]string{
 		"hsub": {"https://vibeplayer.site/hard"},

@@ -139,4 +139,101 @@ func TestGetEpisodeStreamsForModeSelectsHardSub(t *testing.T) {
 	if hints[links[0]].Referrer != baseURL+"/" {
 		t.Fatalf("unexpected referrer %q", hints[links[0]].Referrer)
 	}
+	if hints[links[0]].Subtitle != "" {
+		t.Fatalf("expected no external subtitle for hard sub, got %q", hints[links[0]].Subtitle)
+	}
+}
+
+func TestGetEpisodeStreamsForModeLoadsSoftSubtitles(t *testing.T) {
+	const subtitleURL = "https://cdn.example/sub_2_eng.vtt"
+	const manifestPath = "/sub_filemoon.json"
+
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/episode-embeds/62435/1":
+			manifestURL := server.URL + manifestPath
+			serverFM := "https://embed.example/e/abc/?sub.info=" + manifestURL
+			_ = json.NewEncoder(w).Encode([]embedItem{{
+				URL:           "https://cdn.example/soft.m3u8",
+				ServerFM:      strPtr(serverFM),
+				Status:        "HardSub",
+				MaskedBaseURL: "https://ninstream.com/example/base",
+			}})
+		case r.URL.Path == manifestPath:
+			_ = json.NewEncoder(w).Encode([]senshiSubtitleTrack{{
+				Src:     subtitleURL,
+				Label:   "ENG",
+				Default: true,
+			}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	withSenshiTestClient(t, server.Client())
+	originalBase := baseURL
+	t.Cleanup(func() { baseURL = originalBase })
+	baseURL = server.URL
+
+	links, hints, err := getEpisodeStreamsForMode("62435", providers.PlaybackConfig{SubOrDub: "sub"}, 1)
+	if err != nil {
+		t.Fatalf("getEpisodeStreamsForMode: %v", err)
+	}
+	if len(links) != 1 || links[0] != "https://cdn.example/soft.m3u8" {
+		t.Fatalf("unexpected links %#v", links)
+	}
+	if hints[links[0]].Subtitle != subtitleURL {
+		t.Fatalf("unexpected subtitle %q", hints[links[0]].Subtitle)
+	}
+}
+
+func TestGetEpisodeStreamsForModeHardStillInjectsSenshiSubs(t *testing.T) {
+	const subtitleURL = "https://cdn.example/sub_2_eng.vtt"
+	const manifestPath = "/sub_filemoon.json"
+
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/episode-embeds/62435/1":
+			manifestURL := server.URL + manifestPath
+			serverFM := "https://embed.example/e/abc/?sub.info=" + manifestURL
+			_ = json.NewEncoder(w).Encode([]embedItem{{
+				URL:           "https://cdn.example/soft.m3u8",
+				ServerFM:      strPtr(serverFM),
+				Status:        "HardSub",
+				MaskedBaseURL: "https://ninstream.com/example/base",
+			}})
+		case r.URL.Path == manifestPath:
+			_ = json.NewEncoder(w).Encode([]senshiSubtitleTrack{{
+				Src:     subtitleURL,
+				Label:   "ENG",
+				Default: true,
+			}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	withSenshiTestClient(t, server.Client())
+	originalBase := baseURL
+	t.Cleanup(func() { baseURL = originalBase })
+	baseURL = server.URL
+
+	links, hints, err := getEpisodeStreamsForMode("62435", providers.PlaybackConfig{SubOrDub: "sub", SubStyle: "hard"}, 1)
+	if err != nil {
+		t.Fatalf("getEpisodeStreamsForMode: %v", err)
+	}
+	if len(links) != 1 {
+		t.Fatalf("unexpected links %#v", links)
+	}
+	if hints[links[0]].Subtitle != subtitleURL {
+		t.Fatalf("expected senshi external subs even with hard preference, got %q", hints[links[0]].Subtitle)
+	}
+}
+
+func strPtr(value string) *string {
+	return &value
 }
