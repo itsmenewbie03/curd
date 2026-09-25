@@ -29,11 +29,11 @@ func TestConfiguredProviderNamesFiltersDisabledProviders(t *testing.T) {
 		cfg  *CurdConfig
 		want []string
 	}{
-		{name: "empty", cfg: &CurdConfig{}, want: []string{"senshi", "anipub", "anineko"}},
+		{name: "empty", cfg: &CurdConfig{}, want: []string{"senshi", "anipub", "anineko", "anikoto"}},
 		{name: "json list", cfg: &CurdConfig{Provider: `["allanime","animepahe"]`}, want: []string{"senshi"}},
 		{name: "animepahe only", cfg: &CurdConfig{Provider: `["animepahe"]`}, want: []string{"senshi"}},
 		{name: "allanime only", cfg: &CurdConfig{Provider: `["allanime"]`}, want: []string{"senshi"}},
-		{name: "legacy alias", cfg: &CurdConfig{Provider: "stacked"}, want: []string{"senshi", "anipub", "anineko"}},
+		{name: "legacy alias", cfg: &CurdConfig{Provider: "stacked"}, want: []string{"senshi", "anipub", "anineko", "anikoto"}},
 	}
 
 	for _, tc := range cases {
