@@ -1008,7 +1008,14 @@ func main() {
 
 		// If we still don't have links, get them now
 		if len(anime.Ep.Links) == 0 {
-			links, _, err := internal.GetEpisodeURLForPlayback(userCurdConfig, anime.ProviderId, anime.Ep.Number)
+			providerName, providerID := internal.AnimeProviderID(&anime)
+			qualifiedID := internal.QualifyProviderID(providerName, providerID)
+
+			links, _, err := internal.GetEpisodeURLForPlayback(
+				userCurdConfig,
+				qualifiedID,
+				anime.Ep.Number,
+			)
 			if err != nil {
 				internal.Log("Failed to get episode links: " + err.Error())
 				internal.CurdOut("Failed to get episode links. Try again later.")

@@ -1,17 +1,25 @@
-# Maintainer: Wraient <rushikeshwastaken@gmail.com>
-pkgname='curd'
+pkgname=curd
 pkgver=1.1.4
-pkgrel=1
-pkgdesc="Watch anime in CLI with AniList Tracking, Discord RPC, Intro/Outro/Filler/Recap Skipping, etc."
+pkgrel=3
+pkgdesc="CLI anime player with AniList tracking and Anikoto provider"
 arch=('x86_64')
-url="https://github.com/Wraient/curd"
+url="https://github.com/itsmenewbie03/curd"
 license=('GPL')
 depends=('mpv' 'rofi' 'ueberzugpp')
-provides=('curd')
-conflicts=('curd')
-source=("https://github.com/Wraient/curd/releases/download/v${pkgver}/curd-linux-x86_64")
+makedepends=('go' 'git')
+source=("curd::git+https://github.com/itsmenewbie03/curd.git#branch=feat/anikoto-provider")
 sha256sums=('SKIP')
 
+prepare() {
+    cd "$srcdir/curd"
+}
+
+build() {
+    cd "$srcdir/curd"
+    go build -mod=vendor -trimpath -ldflags="-s -w" -o curd ./cmd/curd
+}
+
 package() {
-  install -Dm755 "$srcdir/curd-linux-x86_64" "$pkgdir/usr/bin/curd"
+    cd "$srcdir/curd"
+    install -Dm755 curd "$pkgdir/usr/bin/curd"
 }

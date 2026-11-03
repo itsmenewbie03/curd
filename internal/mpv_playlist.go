@@ -354,29 +354,29 @@ func (c *MPVPlaylistController) buildEpisodePlaylist() error {
 		}
 	}
 
-	// Previous episodes: append via M3U then playlist-move to the front.
+	// Previous episodes: append at the end to preserve the live item's position.
 	if len(before) > 0 {
-		if err := c.loadTitledPlaceholders(before, true); err != nil {
-			Log(fmt.Sprintf("playlist insert previous: %v", err))
+		if err := c.loadTitledPlaceholders(before, false); err != nil {
+			Log(fmt.Sprintf("playlist append previous: %v", err))
 		}
 	}
 
 	// Rebuild slot map: before + current + after (preferred mode).
 	slots := make([]playlistSlot, 0, len(episodes))
-	slots = append(slots, before...)
 	slots = append(slots, playlistSlot{
 		Episode: currentEp,
 		Mode:    c.preferredMode,
 		Label:   curLabel,
 	})
 	slots = append(slots, after...)
+	slots = append(slots, before...)
 
 	c.mu.Lock()
 	c.slots = slots
 	c.currentPlaying = currentEp
 	c.mu.Unlock()
 
-	wantPos := len(before)
+	wantPos := 0
 	c.lastPos = wantPos
 	if pos, err := c.playlistPos(); err == nil {
 		c.lastPos = pos
@@ -687,7 +687,7 @@ func (c *MPVPlaylistController) watchPlaylistSelection() {
 				_, _ = MPVSendCommand(c.socket, []interface{}{"set_property", "pause", true})
 				c.lastPos = targetPos
 				c.handlePlaylistJump(targetPos)
-					continue
+				continue
 			}
 
 			c.mu.Lock()
@@ -706,7 +706,7 @@ func (c *MPVPlaylistController) watchPlaylistSelection() {
 					beginMPVPlaylistSwitch()
 					_, _ = MPVSendCommand(c.socket, []interface{}{"set_property", "pause", true})
 					c.handlePlaylistJumpSlot(slot, curEp)
-						}
+				}
 				time.Sleep(poll)
 				continue
 			}
@@ -1514,22 +1514,21 @@ func (c *MPVPlaylistController) rebuildPlaylistAroundCurrent() error {
 		}
 	}
 	if len(before) > 0 {
-		if err := c.loadTitledPlaceholders(before, true); err != nil {
-			Log(fmt.Sprintf("rebuild insert previous: %v", err))
+		if err := c.loadTitledPlaceholders(before, false); err != nil {
+			Log(fmt.Sprintf("rebuild append previous: %v", err))
 		}
 	}
 
 	slots := make([]playlistSlot, 0, len(before)+1+len(after))
-	slots = append(slots, before...)
 	slots = append(slots, playlistSlot{Episode: currentEp, Mode: mode, Label: curLabel})
 	slots = append(slots, after...)
+	slots = append(slots, before...)
 
 	c.mu.Lock()
 	c.slots = slots
-	c.lastPos = len(before)
+	c.lastPos = 0
 	c.mu.Unlock()
 
 	Log(fmt.Sprintf("MPV playlist rebuilt around ep %d (%d entries)", currentEp, len(slots)))
 	return nil
 }
-
